@@ -1,15 +1,15 @@
-export interface PositionEval {
+export interface PositionEvaluation {
   bestMove?: string;
   opening?: string;
-  lines: LineEval[];
+  lines: VariationLineEvaluation[];
 }
 
-export interface LineResult {
+export interface VariationLineResult {
   move: string;
   eval: number;
 }
 
-export interface LineEval {
+export interface VariationLineEvaluation {
   pv: string[];
   cp?: number;
   mate?: number;
@@ -26,15 +26,16 @@ export interface LichessEvaluation {
     comment: string;
   };
 }
-export interface Material {
+
+export interface Materials {
+  w: Material;
+  b: Material;
+}
+
+interface Material {
   p: number;
   n: number;
   b: number;
   r: number;
   q: number;
-}
-
-export interface Materials {
-  w: Material;
-  b: Material;
 }

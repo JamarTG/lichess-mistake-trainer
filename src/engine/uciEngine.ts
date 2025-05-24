@@ -1,9 +1,9 @@
-import { MoveClassification } from "../types/move";
+import { MoveClassification } from "../constants/classification";
 import { EngineName } from "../types/engine";
-import { LineResult, PositionEval } from "../types/eval";
+import { PositionEvaluation, VariationLineResult } from "../types/eval";
 import { Chess } from "chess.js";
-import { parseEvaluationResults } from "../utils/parse";
-import { getBasicClassification } from "../utils/chess";
+import { parseEvaluationResults } from "../lib/engine/parsers";
+import { getBasicClassification } from "../utils/chess/classification";
 
 export abstract class UciEngine {
   private worker: Worker;
@@ -12,16 +12,22 @@ export abstract class UciEngine {
   private multiPv = 3;
   private customEngineInit?: () => Promise<void>;
 
-  constructor(
-    engineName: EngineName,
-    enginePath: string,
-    customEngineInit?: () => Promise<void>
-  ) {
+  private static depth = 10;
+
+  public static setDepth(newDepth: number) {
+    if (newDepth < 2 || newDepth > 40) throw new Error("Invalid depth");
+    this.depth = newDepth;
+  }
+
+  public static getDepth() {
+    return this.depth;
+  }
+
+  constructor(engineName: EngineName, enginePath: string, customEngineInit?: () => Promise<void>) {
     this.engineName = engineName;
     this.worker = new Worker(enginePath);
     this.customEngineInit = customEngineInit;
 
-    // console.log(`${engineName} created`);
   }
 
   public async init(): Promise<void> {
@@ -29,7 +35,6 @@ export abstract class UciEngine {
     await this.setMultiPv(this.multiPv, true);
     await this.customEngineInit?.();
     this.ready = true;
-    // console.log(`${this.engineName} initialized`);
   }
 
   private async setMultiPv(multiPv: number, initCase = false) {
@@ -43,10 +48,7 @@ export abstract class UciEngine {
       throw new Error(`Invalid MultiPV value : ${multiPv}`);
     }
 
-    await this.sendCommands(
-      [`setoption name MultiPV value ${multiPv}`, "isready"],
-      "readyok"
-    );
+    await this.sendCommands([`setoption name MultiPV value ${multiPv}`, "isready"], "readyok");
 
     this.multiPv = multiPv;
   }
@@ -72,11 +74,7 @@ export abstract class UciEngine {
     await this.sendCommands(["stop", "isready"], "readyok");
   }
 
-  protected async sendCommands(
-    commands: string[],
-    finalMessage: string,
-    onNewMessage?: (messages: string[]) => void
-  ): Promise<string[]> {
+  protected async sendCommands(commands: string[], finalMessage: string, onNewMessage?: (messages: string[]) => void): Promise<string[]> {
     return new Promise((resolve) => {
       const messages: string[] = [];
 
@@ -96,21 +94,15 @@ export abstract class UciEngine {
     });
   }
 
-  public async getBestMoves(
-    fen: string,
-    depth = 20
-  ): Promise<LineResult[] | null> {
-    const results = await this.sendCommands(
-      [`position fen ${fen}`, `go depth ${depth}`],
-      "bestmove"
-    );
+  public async getBestMoves(fen: string): Promise<VariationLineResult[] | null> {
+    const results = await this.sendCommands([`position fen ${fen}`, `go depth ${UciEngine.depth}`], "bestmove");
 
     const whiteToPlay = fen.split(" ")[1] === "w";
 
     const position = parseEvaluationResults(results, whiteToPlay);
 
     return position?.lines
-      .map(({ pv, cp }, _) => {
+      .map(({ pv, cp }) => {
         const move = pv[0];
 
         return {
@@ -118,57 +110,33 @@ export abstract class UciEngine {
           eval: cp,
         };
       })
-      .filter((line) => line.eval !== undefined) as LineResult[];
+      .filter((line) => line.eval !== undefined) as VariationLineResult[];
   }
 
-  public async evaluatePosition(
-    fen: string,
-    depth = 15
-  ): Promise<PositionEval> {
-    const results = await this.sendCommands(
-      [`position fen ${fen}`, `go depth ${depth}`],
-      "bestmove"
-    );
+  public async evaluatePosition(fen: string): Promise<PositionEvaluation> {
+    const results = await this.sendCommands([`position fen ${fen}`, `go depth ${UciEngine.getDepth()}`], "bestmove");
 
     const whiteToPlay = fen.split(" ")[1] === "w";
 
     return parseEvaluationResults(results, whiteToPlay);
   }
 
-  public async evaluateMoveQuality(
-    fen: string,
-    move: string,
-    depth: number
-  ): Promise<{ classification: MoveClassification }> {
+  public async evaluateMoveQuality(fen: string, move: string): Promise<{ classification: MoveClassification; bestMove: string }> {
     const chess = new Chess(fen);
     const isValidMove = chess.move(move);
 
     if (!isValidMove) throw new Error("Invalid move");
 
-    const lastPositionEval = await this.evaluatePosition(fen, depth);
-    const currentPositionEval = await this.evaluatePosition(chess.fen(), depth);
+    const lastPositionEval = await this.evaluatePosition(fen);
+    const currentPositionEval = await this.evaluatePosition(chess.fen());
 
-    const basicClassification = getBasicClassification(
-      lastPositionEval,
-      currentPositionEval,
-      move
-    );
+    console.log(lastPositionEval, currentPositionEval);
 
-    // Account for the required evaluation scores where a brilliant is possible
-
-    // if (
-    //   (basicClassification === MoveClassification.Best ||
-    //     basicClassification === MoveClassification.Excellent) &&
-    //   isPieceSacrifice(fen, move)
-    // ) {
-    //   return {
-    //     classification: MoveClassification.Brilliant,
-    //     variation: currentPositionEval.lines[0].pv,
-    //   };
-    // }
+    const basicClassification = getBasicClassification(lastPositionEval, currentPositionEval, move);
 
     return {
       classification: basicClassification,
+      bestMove: new Chess(fen).move(lastPositionEval.lines[0]?.pv[0], { strict: false })?.san,
     };
   }
 }

@@ -1,6 +1,7 @@
+import { Color, PieceSymbol, Square } from "chess.js";
 import { LichessClock } from "./clock";
 import { LichessEvaluation } from "./eval";
-import { Move } from "./move";
+import { GameType } from "./form";
 import { LichessPlayers } from "./player";
 
 export interface Puzzle {
@@ -8,23 +9,28 @@ export interface Puzzle {
   fen: Fen;
   players: LichessPlayers;
   gameId: string;
-  timeControl: string;
+  timeControl: GameType;
   rated: boolean;
   status: string;
   variant: string;
-  userMove: Move;
-  opponentMove: Move;
+  userMove:{ san: string; lan: string; piece: PieceSymbol; source: Square; destination: Square; color: Color; };
+  opponentMove: { san: string; lan: string; piece: PieceSymbol; source: Square; destination: Square; color: Color; };
   clock: LichessClock;
-  winner?: "white" | "black";
+  winner?: Color;
   moveNumber: number;
+  opening: Opening;
+  phase: Phase
+}
+
+type Phase = "opening" | "middlegame" | "endgame";
+
+export interface Opening {
+  eco: string;
+  name: string;
+  ply: number;
 }
 
 export interface Fen {
   current: string;
   previous: string;
-}
-
-export interface PuzzleIndex {
-  x: number;
-  y: number;
 }

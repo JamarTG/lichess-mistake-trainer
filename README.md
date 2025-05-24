@@ -2,9 +2,9 @@
 
 ## Preview
 
-<div style="display: flex; justify-content: center; align-items: center;">
-  <img src="https://github.com/user-attachments/assets/1e3fdd5c-be87-4f92-90e2-83c011739249" alt="description" width="800"/>
-</div>
+![image](https://github.com/user-attachments/assets/43519748-0a04-43de-bfc2-722b2cc7275d)
+
+
 
 
 

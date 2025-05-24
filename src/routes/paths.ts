@@ -1,12 +1,7 @@
 const Paths = {
-
   HOME:"/",
-  ABOUT: "/about",
+  SETTINGS: "/settings",
   HELP: "/help",
-  TRAIN: "/train",
-  TEST: "/test",
-
-
 }
 
 export default Paths

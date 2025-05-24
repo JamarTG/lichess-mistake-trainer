@@ -1,18 +1,25 @@
 import { BrowserRouter } from "react-router-dom";
-import { EngineProvider } from "./context/Engine/EngineProvider";
 import { EngineName } from "./types/engine";
-import { PuzzleProvider } from "./context/Puzzle/PuzzleProvider";
 import Router from "./routes/router";
+import "./App.css";
+import { EngineProvider } from "./context/EngineContext";
+import { DepthProvider } from "./context/DepthContext";
+import { Toaster } from "react-hot-toast";
+import { store } from "./redux/store";
+import { Provider } from "react-redux";
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <EngineProvider initialEngineName={EngineName.Stockfish16_1Lite}>
-        <PuzzleProvider>
-          <Router />
-        </PuzzleProvider>
-      </EngineProvider>
-    </BrowserRouter>
+    <Provider store={store}>
+      <Toaster />
+      <BrowserRouter>
+        <EngineProvider initialEngineName={EngineName.Stockfish16_1Lite}>
+          <DepthProvider>
+              <Router />
+          </DepthProvider>
+        </EngineProvider>
+      </BrowserRouter>
+    </Provider>
   );
 };
 

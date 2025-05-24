@@ -5,7 +5,7 @@ export interface Fields {
   endDate: string;
   gameTypes: GameType[];
   color: Color;
-  sort : Sort;
+  sort: Sort;
 }
 
 export type Sort = "asc" | "desc";
